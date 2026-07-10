@@ -298,7 +298,8 @@ function hbarsHTML(pairs,fmtF='#'){if(!pairs.length)return '<div class="empty">N
 
 // ---------- scoreboard ----------
 const SHEET_SNAP_IDS=new Set(['apptSet','apptAtt','show','opps','calls','qcs']);
-function badge(id){return liveGot.has(id)?'<span class="badge live">Live</span>':`<span class="badge">${SHEET_SNAP_IDS.has(id)?'Sheet snapshot':'Static · no sheet tab'}</span>`}
+function badge(id){return liveGot.has(id)?'<span class="badge live">Live</span>'
+  :`<span class="badge">${(LIVE_IDS.has(id)||SHEET_SNAP_IDS.has(id))?'Sheet snapshot':'Static · no sheet tab'}</span>`}
 function card(m,a,b,unit,mult,spec){
   const total=spec.total(m,a,b);
   const tg=target(m,'TEAM',unit,mult);
