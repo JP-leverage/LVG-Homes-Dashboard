@@ -496,7 +496,7 @@ const gv=(o,...pfxs)=>{const ks=Object.keys(o);for(const p of pfxs){const pl=p.t
 
 const APPT_TABS={'Bhavin Shroff':'Totals Appt To Arip - Bhavin','Nick Miller':'Totals Appt To Arip - Nick','Erick Bonilla':'Totals Appt To Arip - Erick','Billy Liapis':'Totals Appt To Arip - Billy','Brian Chacon':'Totals Appt To Arip - Brian','Francis Qhobosheane':'Totals Appt To Arip - Francis','Rodney Malloy':'Totals Appt To Arip - Rodney','Irish Manoguid':'Totals Appt To Arip - Irish'};
 const CS_TABS={'Sam Dogbe':'Totals CS To Arip - Sam','Joey Szal':'Totals CS To Arip - Joey','Ray O\'Donnell':'Totals CS To Arip - Ray'};
-const LEADS_TABS={'Bhavin Shroff':'Leads Claimed YTD x Month - Bha','Irish Manoguid':'Leads Claimed YTD x Month - Iri','Oscar Malik':'Leads Claimed YTD x Month - Osc','Billy Liapis':'Leads Claimed YTD x Month - Bil','Brian Chacon':'Leads Claimed YTD x Month - Bri','Nick Miller':'Leads Claimed YTD x Month - Nic','Erick Bonilla':'Leads Claimed YTD x Month - Eri','Francis Qhobosheane':'Leads Claimed YTD x Month - Fra','Rodney Malloy':'Leads Claimed YTD x Month - Rod'};
+const LEADS_TABS={'Bhavin Shroff':'Leads Claimed YTD x Month - Bhavin','Irish Manoguid':'Leads Claimed YTD x Month - Irish','Oscar Malik':'Leads Claimed YTD x Month - Oscar','Billy Liapis':'Leads Claimed YTD x Month - Billy','Brian Chacon':'Leads Claimed YTD x Month - Brian','Nick Miller':'Leads Claimed YTD x Month - Nick','Erick Bonilla':'Leads Claimed YTD x Month - Erick','Francis Qhobosheane':'Leads Claimed YTD x Month - Francis','Rodney Malloy':'Leads Claimed YTD x Month - Rodney'};
 const TALK_TABS={'Joey Szal':'Talk Time YTD x Month - Joey','Sam Dogbe':'Talk Time YTD x Month - Sam','Ray O\'Donnell':'Talk Time YTD x Month - Ray','Bhavin Shroff':'Talk Time YTD x Month - Bhavin','Nick Miller':'Talk Time YTD x Month - Nick','Erick Bonilla':'Talk Time YTD x Month - Erick','Billy Liapis':'Talk Time YTD x Month - Billy','Rodney Malloy':'Talk Time YTD x Month - Rodney','Francis Qhobosheane':'Talk Time YTD x Month - Franci','Brian Chacon':'Talk Time YTD x Month - Brian','Irish Manoguid':'Talk Time YTD x Month - Irish','Oscar Malik':'Talk Time YTD x Month - Oscar'};
 
 function setStatus(mode,msg){
@@ -525,7 +525,7 @@ async function loadLive(){
     // headers are validated so gviz's silent first-sheet fallback can't poison a metric
     const [pipe,pull,allAppt,oppsC,...rest]=await Promise.all([
       grabV(['2026 Monthly Pipeline Report'],'2026 Monthly Pipeline Report','Stage','Opportunity Name'),
-      grabV(['ARIP Pull Through Rate by Sales'],'ARIP Pull Through Rate by Sales','New Value','Edit Date'),
+      grabV(['ARIP Pull Through Rate by Sales Rep','ARIP Pull Through Rate by Sales'],'ARIP Pull Through Rate by Sales Rep','New Value','Edit Date'),
       grabV(['All Appointment Set'],'All Appointment Set','Appointment Outcome'),
       grabV(['Opportunities Created This Year'],'Opportunities Created This Year','Opportunity Owner','Created Date'),
       ...Object.entries(APPT_TABS).map(([rep,t])=>grabV(cand(t,'Totals Appt To Arip - ',rep),t,'Deals to Arip')),
