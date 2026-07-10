@@ -633,7 +633,13 @@ async function loadLive(){
 }
 function parseAllAppt(rows){
   const keys=Object.keys(rows[0]||{});
-  const find=pfxs=>{for(const p of pfxs){const k=keys.find(k=>k.toLowerCase().startsWith(p.toLowerCase()));if(k)return k}return null};
+  // gviz can merge the Coefficient banner (A1) into the first column header, e.g.
+  // "Salesforce Import Last updated 1 hour ago Assigned" — so match startsWith, then endsWith, then includes.
+  const find=pfxs=>{for(const p of pfxs){const pl=p.toLowerCase();
+    const k=keys.find(k=>k.toLowerCase().startsWith(pl))
+          ||keys.find(k=>k.toLowerCase().endsWith(pl))
+          ||keys.find(k=>k.toLowerCase().includes(pl));
+    if(k)return k}return null};
   const cdK=find(['Created Date','Start','Date']),asK=find(['Assigned','Opportunity Owner']),
         sjK=find(['Subject']),ocK=find(['Appointment Outcome','Outcome']),cbK=find(['Created By']);
   if(!cdK||!asK)throw new Error('headers not recognized: '+keys.slice(0,6).join(' | '));
@@ -659,7 +665,13 @@ function parseAllAppt(rows){
 }
 function parseOppsCreated(rows){
   const keys=Object.keys(rows[0]||{});
-  const find=pfxs=>{for(const p of pfxs){const k=keys.find(k=>k.toLowerCase().startsWith(p.toLowerCase()));if(k)return k}return null};
+  // gviz can merge the Coefficient banner (A1) into the first column header, e.g.
+  // "Salesforce Import Last updated 1 hour ago Assigned" — so match startsWith, then endsWith, then includes.
+  const find=pfxs=>{for(const p of pfxs){const pl=p.toLowerCase();
+    const k=keys.find(k=>k.toLowerCase().startsWith(pl))
+          ||keys.find(k=>k.toLowerCase().endsWith(pl))
+          ||keys.find(k=>k.toLowerCase().includes(pl));
+    if(k)return k}return null};
   const cdK=find(['Created Date']),owK=find(['Opportunity Owner']),cbK=find(['Created By']),
         lsK=find(['Lead Source']),onK=find(['Opportunity Name']);
   if(!cdK||!owK)throw new Error('headers not recognized: '+keys.slice(0,6).join(' | '));
