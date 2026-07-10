@@ -471,6 +471,22 @@ async function fetchTab(id,name){
 const dOf=s=>{const m=(s||'').match(/(\d{4})-(\d{2})-(\d{2})/);if(m)return m[0];
   const m2=(s||'').match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
   return m2?`${m2[3]}-${m2[1].padStart(2,'0')}-${m2[2].padStart(2,'0')}`:null};
+// gviz silently returns the FIRST sheet when a tab name doesn't exist — so every fetch must be
+// content-validated. okHdr checks the returned rows actually carry the expected columns.
+const okHdr=(rows,...names)=>!!(rows&&rows.length)&&names.every(n=>{const ks=Object.keys(rows[0]);const nl=n.toLowerCase();
+  return ks.some(k=>{const kl=k.toLowerCase();return kl===nl||kl.startsWith(nl)||kl.endsWith(nl)||kl.includes(nl)})});
+// try candidate tab names in order until one returns rows with the required headers
+// (handles Excel's 31-char tab-name truncation vs full names on the live sheet)
+async function fetchTabV(id,names,...must){
+  let last=null,lastErr=null;
+  for(const n of names){
+    try{const rows=await fetchTab(id,n);last=rows;
+      if(!must.length||okHdr(rows,...must))return rows;
+    }catch(e){lastErr=e}
+  }
+  if(last)throw new Error('wrong tab content; got headers: '+Object.keys(last[0]||{}).slice(0,5).join(' | '));
+  throw lastErr||new Error('fetch failed');
+}
 const num=s=>{const v=parseFloat(String(s).replace(/[$,]/g,''));return isNaN(v)?0:v};
 // resilient column getter: exact → startsWith → endsWith → includes (survives banner-merged headers)
 const gv=(o,...pfxs)=>{const ks=Object.keys(o);for(const p of pfxs){const pl=p.toLowerCase();
@@ -498,18 +514,23 @@ async function loadLive(){
   const btn=document.getElementById('refreshBtn');btn.disabled=true;setStatus('snap','Loading sheet…');
   liveGot=new Set();
   const failed=[];let okCount=0;
-  const grab=t=>fetchTab(id,t).then(r=>{okCount++;return r}).catch(e=>{failed.push(t);console.warn('Tab failed:',t,e);return null});
+  const first=n=>n.split(' ')[0];
+  const cand=(cfg,base,rep)=>[...new Set([cfg,base+first(rep)])];
+  const grabV=(names,label,...must)=>fetchTabV(id,names,...must)
+    .then(r=>{okCount++;return r})
+    .catch(e=>{failed.push(label+(e&&e.message?' ('+e.message+')':''));console.warn('Tab failed:',label,e);return null});
   try{
     const ammKeys=Object.keys(APPT_TABS),csKeys=Object.keys(CS_TABS),ldKeys=Object.keys(LEADS_TABS);
-    // every grab() resolves (null on failure) — one bad tab can no longer kill the load
+    // every grabV() resolves (null on failure) — one bad tab can no longer kill the load;
+    // headers are validated so gviz's silent first-sheet fallback can't poison a metric
     const [pipe,pull,allAppt,oppsC,...rest]=await Promise.all([
-      grab('2026 Monthly Pipeline Report'),
-      grab('ARIP Pull Through Rate by Sales'),
-      grab('All Appointment Set'),
-      grab('Opportunities Created This Year'),
-      ...Object.values(APPT_TABS).map(grab),
-      ...Object.values(CS_TABS).map(grab),
-      ...Object.values(LEADS_TABS).map(grab),
+      grabV(['2026 Monthly Pipeline Report'],'2026 Monthly Pipeline Report','Stage','Opportunity Name'),
+      grabV(['ARIP Pull Through Rate by Sales'],'ARIP Pull Through Rate by Sales','New Value','Edit Date'),
+      grabV(['All Appointment Set'],'All Appointment Set','Appointment Outcome'),
+      grabV(['Opportunities Created This Year'],'Opportunities Created This Year','Opportunity Owner','Created Date'),
+      ...Object.entries(APPT_TABS).map(([rep,t])=>grabV(cand(t,'Totals Appt To Arip - ',rep),t,'Deals to Arip')),
+      ...Object.entries(CS_TABS).map(([rep,t])=>grabV(cand(t,'Totals CS To Arip - ',rep),t,'Contract Sent')),
+      ...Object.entries(LEADS_TABS).map(([rep,t])=>grabV(cand(t,'Leads Claimed YTD x Month - ',rep),t,'Edit Date','Lead')),
     ]);
     const apptData=rest.slice(0,ammKeys.length),csData=rest.slice(ammKeys.length,ammKeys.length+csKeys.length),
           ldData=rest.slice(ammKeys.length+csKeys.length);
@@ -633,7 +654,7 @@ async function loadLive(){
     const nt={'__TEAM__':{}},nc={'__TEAM__':{}},nq={'__TEAM__':{}};let done=0,talkOk=0,qcTabs=0;const tk=Object.entries(TALK_TABS);
     for(const [repName,tab] of tk){
       try{
-        const rows=await fetchTab(id,tab);
+        const rows=await fetchTabV(id,cand(tab,'Talk Time YTD x Month - ',repName),'smrtPhone Call Durat');
         let tcalls=0;
         const qk=rows.length?Object.keys(rows[0]).find(k=>/qc/i.test(k)):null;
         if(qk)qcTabs++;
@@ -653,7 +674,7 @@ async function loadLive(){
           nt['__TEAM__'][d]=(nt['__TEAM__'][d]||0)+min;
         }
         if(rows.length&&!tcalls)failed.push(tab+' (0 dates parsed)');else talkOk++;
-      }catch(e){failed.push(tab)}
+      }catch(e){failed.push(tab+(e&&e.message?' ('+e.message+')':''))}
       done++;setStatus('live',`Live · talk time ${done}/${tk.length}`);
     }
     if(talkOk===tk.length){
