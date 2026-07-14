@@ -579,15 +579,18 @@ async function loadLive(){
         const qcK=keys.find(k=>/smrtPhone QC/i.test(k));
         for(const r of rows){
           const d=dOf(r[dateK]);if(!d)continue;
+          // Talk minutes: prefer the "(Minutes)" column, else seconds/60
+          const min=minK&&/minute/i.test(minK)?num(r[minK]):num(r[durCols[0]])/60;
           // Calls: every dated row is a call
           (nc[repName]=nc[repName]||{})[d]=(nc[repName][d]||0)+1;
           nc['__TEAM__'][d]=(nc['__TEAM__'][d]||0)+1;
-          // QCs: sum of smrtPhone QC Y/N (0/1)
-          const qc=qcK?num(r[qcK]):0;
-          if(qc){(nq[repName]=nq[repName]||{})[d]=(nq[repName][d]||0)+qc;
-            nq['__TEAM__'][d]=(nq['__TEAM__'][d]||0)+qc}
-          // Talk minutes: prefer the "(Minutes)" column, else seconds/60
-          let min=minK&&/minute/i.test(minK)?num(r[minK]):num(r[durCols[0]])/60;
+          // QCs = "quality conversations": calls of 3+ minutes. The sheet's QC Y/N
+          // column already encodes this (1 = duration >= 3 min); trust it when present,
+          // otherwise derive the same rule straight from the duration so QCs never drop out.
+          const isQC=qcK?num(r[qcK])>0:(min>=3);
+          if(isQC){(nq[repName]=nq[repName]||{})[d]=(nq[repName][d]||0)+1;
+            nq['__TEAM__'][d]=(nq['__TEAM__'][d]||0)+1}
+          // Talk time (skip zero-minute rows so they don't inflate the average)
           if(!min)continue;
           (nt[repName]=nt[repName]||{})[d]=(nt[repName][d]||0)+min;
           nt['__TEAM__'][d]=(nt['__TEAM__'][d]||0)+min;
