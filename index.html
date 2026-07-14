@@ -132,7 +132,7 @@ footer{margin-top:26px;color:var(--dim);font-size:11px;line-height:1.6;border-to
 <main id="main"></main>
 <footer>
 Live tabs (recomputed on every refresh): Net Revenue &amp; Avg Fee (2026 Monthly Pipeline Report), Deals to ARIP (Totals tabs, §5a distinct-opportunity dedup), ARIP fallout (ARIP Pull Through), Leads Claimed, Talk Time, pipeline charts.
-Static tabs (from the Rainmakers export baked into this file): targets, Deal Reviews, Contracts Sent, Calls, QCs, Appointments Set/Attended, Show Rate, Opps Created, Live Transfers — share a Rainmakers-fed sheet to make these live too.
+Static tabs (from the snapshot baked into this file): targets, Deal Reviews, Contracts Sent, Appointments Set/Attended, Show Rate, Opps Created — connect a Coefficient-fed sheet to make these live too.
 Counting rules enforced: appointments credit only the rep who set them; ARIPs count distinct opportunities; "Tech" excluded; talk time in minutes.
 </footer>
 </div>
@@ -204,9 +204,8 @@ const M = [
  {id:'talk', name:'Talk Time (min)', fmt:'#', vp:'talk', am:'talk', fu:'talk', team:'talk'},
  {id:'calls', name:'Total Calls', fmt:'#', vp:'calls', am:'calls', fu:'calls', team:'calls'},
  {id:'qcs', name:'QCs', fmt:'#', vp:'qcs', am:'qcs', fu:'qcs', team:'qcs'},
- {id:'opps', name:'Opps Created', fmt:'#', vp:'opps', team:'opps'},
+ {id:'opps', name:'Opps Created', fmt:'#', vp:'opps', am:'opps', fu:'opps', team:'opps'},
  {id:'leads', name:'Leads Claimed', fmt:'#', am:'leads', team:'leads'},
- {id:'liveT', name:'Live Transfers', fmt:'#', am:'liveT', team:'liveT'},
 ];
 
 // ---------- date helpers ----------
@@ -259,14 +258,13 @@ function gaugeSVG(pct){const p=Math.max(0,Math.min(1.25,pct));const cx=110,cy=10
  return `<svg width="220" height="128" viewBox="0 0 220 128" role="img" aria-label="attainment gauge">${seg(0,.48,'#F0563C')}${seg(.48,.8,'#F5B841')}${seg(.8,1,'#3DDC97')}<line x1="${cx}" y1="${cy}" x2="${nx}" y2="${ny}" stroke="#E9F0FA" stroke-width="3.5" stroke-linecap="round"/><circle cx="${cx}" cy="${cy}" r="5" fill="#E9F0FA"/><text x="${cx}" y="124" text-anchor="middle" fill="${colr}" font-family="Barlow Condensed" font-size="22" font-weight="700">${(pct*100).toFixed(0)}%</text></svg>`}
 function colsHTML(pairs,fmtF='#',maxBars=14){if(!pairs.length)return '<div class="empty">No data in this period</div>';
  pairs=pairs.slice(0,maxBars);const mx=Math.max(1,...pairs.map(p=>Math.abs(p[1])));
- return '<div class="cols">'+pairs.map(p=>`<div class="col"><div class="cv">${fmt(p[1],fmtF)}</div><div class="cb ${p[1]<0?'neg':''}" style="height:${Math.max(2,Math.abs(p[1])/mx*118)}px"></div><div class="cl">${p[0]}</div></div>`).join('')+'</div>'}
+ return '<div class="cols">'+pairs.map(p=>`<div class="col" title="${p[0]}: ${fmt(p[1],fmtF)}"><div class="cv">${fmt(p[1],fmtF)}</div><div class="cb ${p[1]<0?'neg':''}" style="height:${Math.max(2,Math.abs(p[1])/mx*118)}px"></div><div class="cl">${p[0]}</div></div>`).join('')+'</div>'}
 function hbarsHTML(pairs,fmtF='#'){if(!pairs.length)return '<div class="empty">No data in this period</div>';
  const mx=Math.max(1,...pairs.map(p=>p[1]));
- return '<div class="hbars">'+pairs.map(p=>`<div class="hb"><div class="l">${p[0]}</div><div class="t"><i style="width:${(p[1]/mx*100).toFixed(1)}%"></i></div><div class="v">${fmt(p[1],fmtF)}</div></div>`).join('')+'</div>'}
+ return '<div class="hbars">'+pairs.map(p=>`<div class="hb" title="${p[0]}: ${fmt(p[1],fmtF)}"><div class="l">${p[0]}</div><div class="t"><i style="width:${(p[1]/mx*100).toFixed(1)}%"></i></div><div class="v">${fmt(p[1],fmtF)}</div></div>`).join('')+'</div>'}
 
 // ---------- scoreboard ----------
-const SHEET_SNAP_IDS=new Set(['apptSet','apptAtt','show']);
-function badge(id){return liveGot.has(id)?'<span class="badge live">Live</span>':`<span class="badge">${SHEET_SNAP_IDS.has(id)?'Sheet snapshot':'Rainmakers export'}</span>`}
+function badge(id){return liveGot.has(id)?'<span class="badge live">Live</span>':'<span class="badge">Snapshot</span>'}
 function card(m,a,b,unit,mult,spec){
   const total=spec.total(m,a,b);
   const tg=target(m,'TEAM',unit,mult);
@@ -282,7 +280,7 @@ function card(m,a,b,unit,mult,spec){
     ${m.ratio?'':sparkSVG(series(m.team||m.vp||m.am,'__TEAM__',a,b))}
     <div class="rows">${rows.map(r=>{const rt=r.tgt;const ra=rt?(r.v||0)/rt:null;
       const rcls=ra==null?'':ra>=1?'ahead':ra<.6?'behind':'';
-      return `<div class="rw ${rcls}"><div class="nm" data-rep="${r.rep||''}">${r.name}</div><div class="bar"><i style="width:${(Math.abs(r.v||0)/mx*100).toFixed(1)}%"></i></div><div class="vl">${fmt(r.v,m.fmt)}${rt?`<br><small>/ ${fmt(rt,m.fmt)}</small>`:''}</div></div>`}).join('')}</div></div>`;
+      return `<div class="rw ${rcls}" title="${r.name}: ${fmt(r.v,m.fmt)}${rt?' / '+fmt(rt,m.fmt)+' target':''}"><div class="nm" data-rep="${r.rep||''}">${r.name}</div><div class="bar"><i style="width:${(Math.abs(r.v||0)/mx*100).toFixed(1)}%"></i></div><div class="vl">${fmt(r.v,m.fmt)}${rt?`<br><small>/ ${fmt(rt,m.fmt)}</small>`:''}</div></div>`}).join('')}</div></div>`;
 }
 function teamRatio(m,people,a,b){let n=0,dd=0;for(const p of people){const rk=(roleOf(p)!=='VP'&&m.ratioBy)?m.ratioBy:m.ratio;n+=sum(rk[0],p,a,b);dd+=sum(rk[1],p,a,b)}return dd?n/dd*100:null}
 function renderScoreboard(){
@@ -430,7 +428,7 @@ function setStatus(mode,msg){
   document.getElementById('statustxt').textContent=msg;
   document.getElementById('sub').textContent=mode==='live'
     ?'Live from Google Sheets · refreshed '+new Date().toLocaleTimeString()
-    :'Snapshot of '+SNAP.asOf+' · targets from Rainmakers V3.0';
+    :'Snapshot of '+SNAP.asOf+' · targets from baked snapshot';
 }
 async function loadLive(){
   const id=getSheetId();
@@ -652,7 +650,7 @@ function syncControls(){
   const rs=document.getElementById('roleSel'),ps=document.getElementById('repSel');
   rs.style.display=view==='Role'?'':'none';ps.style.display=view==='Rep'?'':'none';
   rs.innerHTML=Object.entries(ROLES).map(([k,v])=>`<option value="${k}" ${k===role?'selected':''}>${v}</option>`).join('');
-  ps.innerHTML=[...R.VP,...R.AM].map(p=>`<option ${p===rep?'selected':''}>${p}</option>`).join('');
+  ps.innerHTML=ALLP.map(p=>`<option ${p===rep?'selected':''}>${p}</option>`).join('');
   rs.onchange=e=>{role=e.target.value;render()};
   ps.onchange=e=>{rep=e.target.value;render()};
   const [a,b]=range();
