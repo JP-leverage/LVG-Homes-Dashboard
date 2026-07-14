@@ -407,9 +407,19 @@ async function fetchTab(id,name){
   let hi=0;
   for(let i=0;i<Math.min(4,rows.length);i++){
     const joined=rows[i].join('|');
-    if(/Opportunity Name|Lead ID|Company \/ Account|Transaction Type|Assigned|Appointment Outcome|Subject|Created Date/.test(joined)){hi=i;break}
+    if(/Opportunity Name|Lead ID|Company \/ Account|Transaction Type|Assigned|Appointment Outcome|Subject|Created Date|Arip Date|Deals to Arip|Follow Up Specialist|Acquisition Manager/.test(joined)){hi=i;break}
   }
-  const hdr=rows[hi].map(s=>s.trim());
+  // Coefficient puts a merged "Salesforce Import · Last updated … · Powered by Coefficient"
+  // banner in row 1; gviz fuses it into the FIRST header cell of row 2 (e.g. "…ago Assigned").
+  // Strip that banner text out of every header cell so downstream key lookups match cleanly.
+  const cleanHdr=h=>(h||'')
+    .replace(/Salesforce Import\s*.*?updated.*?ago\s*/i,'')
+    .replace(/\s*Powered by Coefficient\s*/i,'')
+    .replace(/\s*Open Sidebar\s*/i,'')
+    .replace(/\s*Refresh\s*/i,'')
+    .replace(/^Salesforce Import\s*/i,'')
+    .trim();
+  const hdr=rows[hi].map(s=>cleanHdr(s));
   return rows.slice(hi+1).map(r=>{const o={};hdr.forEach((h,j)=>o[h]=r[j]!==undefined?r[j].trim():'');return o});
 }
 const dOf=s=>{const m=(s||'').match(/(\d{4})-(\d{2})-(\d{2})/);if(m)return m[0];
